@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const session = require('express-session');
 const flash = require('connect-flash');
+require('dotenv').config();
+const PORT = process.env.PORT || 4000;
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -46,10 +48,15 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-const PORT = process.env.PORT || 3010;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// const PORT = process.env.PORT || 4000;
+// app.listen(PORT, (err) => {
+//   if (err) {
+//     console.error(`Error starting server: ${err.message}`);
+//     process.exit(1); // Exit the process if there's an error
+//   }
+//   console.log(`Server is running on port ${PORT}`);
+// });
+
 
 
 
