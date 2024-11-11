@@ -19,10 +19,10 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // Register a new user
 async function register(req, res) {
 //   const { username, password } = req.body; // Ensure email is included in the request
-    const username = "Ahmed"
+    const username = "Hamza"
     const password = "abcde"
-    const email = "k224825@nu.edu.pk"
-    const type = "Admin"
+    const email = "davidalbert.eth@gmail.com"
+    const type = "normal"
     console.log(process.env.GMAIL)
     console.log(process.env.PASSWORD)
 
@@ -36,23 +36,26 @@ async function register(req, res) {
 
     // Check if the username already exists
     const existingUser = await connection.execute(
-      `SELECT * FROM users WHERE username = :username`,
-      { username }
+      `SELECT * FROM users WHERE email = :email`,
+      { email }
     );
+    console.log("fs")
 
     if (existingUser.rows.length > 0) {
       await connection.close();
-      return res.status(400).json({ message: 'Username already exists.' });
+      return res.status(400).json({ message: 'Account already exists.' });
     }
     
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("fd");
 
     // Insert the new user into the database
     await connection.execute(
-      `INSERT INTO users (username, password, email) VALUES (:username, :password, :email)`,
-      { username, password: hashedPassword, email }
+      `INSERT INTO users (user_id, user_name,email, password, user_type) VALUES (user_id_seq.NEXTVAL, :user_name, :email, :password, :user_type )`,
+      { user_name : username, email, password: hashedPassword, user_type : type }
     );
+    console.log("sf")
 
     await connection.commit();
 
@@ -67,10 +70,11 @@ async function register(req, res) {
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
     // Update user with OTP and expiry in Oracle SQL
-    await connection.execute(
-      `UPDATE USERS SET OTP = :otp, OTPEXPIRY = :otpExpiry WHERE USERNAME = :username`,
-      [otp, otpExpiry, username]
+      await connection.execute(
+        `UPDATE USERS SET otp = :otp, OTP_EXPIRY = :otp_Expiry WHERE USER_NAME = :user_name`,
+        { otp : otp, otp_Expiry: otpExpiry, user_name: username }    
     );
+    console.log("jsd")
     await connection.commit(); // Commit the transaction
 
     // Send OTP via Nodemailer
@@ -111,6 +115,7 @@ async function verify_otp(req, res) {
 //   const otp = req.flash("otp")[0]
 const email = req.session.email
   const otp = req.session.otp
+  console.log(email)
 
   let connection;
 
@@ -132,8 +137,8 @@ const email = req.session.email
 
     const user = userResult.rows[0]; // Get the user
     console.log(user)
-    const storedOtp = user[4]; // Get the stored OTP
-    const otpExpiry = user[5] // Get OTP expiry
+    const storedOtp = user[6]; // Get the stored OTP
+    const otpExpiry = user[7] // Get OTP expiry
     console.log(storedOtp)
     console.log(otpExpiry)
 
@@ -141,7 +146,7 @@ const email = req.session.email
     if (storedOtp === otp && Date.now() <= otpExpiry) {
       // OTP is valid and not expired
       await connection.execute(
-        `UPDATE USERS SET OTP = NULL, OTPEXPIRY = NULL WHERE EMAIL = :email`,
+        `UPDATE USERS SET OTP = NULL, OTP_EXPIRY = NULL WHERE EMAIL = :email`,
         [email]
       );
       await connection.commit(); // Clear the OTP from the database
@@ -171,11 +176,11 @@ const email = req.session.email
 
 async function login(req, res) {
     //   const { username, password } = req.body;
-    const username = "Ahmed";
+    const email = "davidalbert.eth@gmail.com";
       const password = "abcde";
     
     
-      if (!username || !password) {
+      if (!email || !password) {
         return res.status(400).json({ message: 'Username and password are required.' });
       }
     
@@ -184,8 +189,8 @@ async function login(req, res) {
     
         // Fetch user from the database
         const result = await connection.execute(
-          `SELECT * FROM users WHERE username = :username`,
-          { username }
+          `SELECT * FROM users WHERE email = :email`,
+          { email }
         );
     
         await connection.close();
@@ -197,17 +202,17 @@ async function login(req, res) {
         const user = result.rows[0];
     
         // Check if the password is correct
-        const isMatch = await bcrypt.compare(password, user[2]); // Assuming user[1] is the password
+        const isMatch = await bcrypt.compare(password, user[3]); // Assuming user[1] is the password
     
         if (!isMatch) {
           return res.status(400).json({ message: 'Invalid credentials.' });
         }
     
         // Generate JWT token
-        const token = jwt.sign({ userId: user[0], username: user[1] }, JWT_SECRET, {
+        const token = jwt.sign({ user_Id: user[0], user_name: user[1] }, JWT_SECRET, {
           expiresIn: '1h',
         });
-        user[3] = "Admin" ? res.json({ token, message: 'Login successful! Admin' }) :
+        user[4] == "Admin" ? res.json({ token, message: 'Login successful! Admin' }) :
          res.json({ token, message: 'Login successful! User' });
 
         // res.json({ token, message: 'Login successful!' });
