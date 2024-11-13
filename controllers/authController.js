@@ -6,6 +6,7 @@ const nodemailer = require('nodemailer');
 const otpGenerator = require('otp-generator');
 const session = require('express-session');
 const flash = require('connect-flash');
+const { use } = require('../routes');
 
 // Configure Nodemailer
 let transporter = nodemailer.createTransport({
@@ -207,7 +208,11 @@ async function login(req, res) {
         if (!isMatch) {
           return res.status(400).json({ message: 'Invalid credentials.' });
         }
-    
+        req.session.user = {
+          user_id: user[0],
+          email: user[2],
+          role: user[4]
+      };   
         // Generate JWT token
         const token = jwt.sign({ user_Id: user[0], user_name: user[1] }, JWT_SECRET, {
           expiresIn: '1h',
@@ -220,8 +225,28 @@ async function login(req, res) {
         res.status(500).json({ message: 'Error logging in user.', error: err.message });
       }
     }
+
+    function logout(req, res) {
+      req.session.destroy((err) => {
+          if (err) {
+              return res.status(500).json({ message: 'Error logging out.' });
+          }
+          return res.json({ message: 'Logged out successfully!' });
+      });
+    }
+
+    function isAuthenticated(req, res, next) {
+      if (req.session && req.session.user) {
+          return next();
+      } else {
+          return res.status(401).json({ message: 'Unauthorized. Please log in.' });
+      }
+  }
+  function getSessionUser(req) {
+    return req.session && req.session.user ? req.session.user.user_id : null;
+}  
 // Export functions
-module.exports = { register, verify_otp ,login};
+module.exports = { register, verify_otp ,login, logout, isAuthenticated, getSessionUser};
 
 
 

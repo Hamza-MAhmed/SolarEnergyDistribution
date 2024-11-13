@@ -1,10 +1,11 @@
 // const oracledb = require('oracledb');
 const { getConnection } = require('../db/dbconfig');
-
+const {getSessionUser} = require('./authController')
+const session = require('express-session');
 
 async function createPost(req, res) {
     const postData = {
-        seller_id: 1,       // Hard-coded seller ID
+        seller_id: getSessionUser(req),       // Hard-coded seller ID
         location_id: 5,       // Hard-coded location ID
         units: 50,            // Hard-coded units available
         price_per_unit: 200   // Hard-coded price per unit
@@ -20,7 +21,6 @@ async function createPost(req, res) {
     }
     catch(err) {
         res.status(500).json({ error: 'Error creating post',details:err.message });
-        connection.close();
     }
     finally {
         if (connection) {
@@ -28,6 +28,29 @@ async function createPost(req, res) {
         }
     }
 }
+
+async function getPosts(req, res) {
+    const query = "SELECT * FROM POSTS";
+    let connection;
+        try {
+            connection = await getConnection();
+            const result = await connection.execute(query);
+            const posts = result.rows.map(row => ({
+                post_id: row[0],    
+                seller_id: row[1],
+                location_id: row[2],
+                units: row[3],
+                price_per_unit: row[4]
+            }));
+            res.status(200).json({ posts });
+        } catch (err) {
+            res.status(500).json({ error: 'Error fetching posts', details: err.message });
+        } finally {
+            if (connection) {
+                await connection.close();
+            }
+        }
+    }
 
 async function getPostById(postId) {
     const sql = `SELECT * FROM Posts WHERE post_id = :postId`;
@@ -37,7 +60,7 @@ async function getPostById(postId) {
     return result.rows;
 }
 
-module.exports = { createPost, getPostById };
+module.exports = { createPost, getPosts };
 
 
 // const postModel = require('../models/postModel');
