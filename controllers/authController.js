@@ -211,7 +211,8 @@ async function login(req, res) {
         req.session.user = {
           user_id: user[0],
           email: user[2],
-          role: user[4]
+          role: user[4],
+          user_name: user[1]
       };   
         // Generate JWT token
         const token = jwt.sign({ user_Id: user[0], user_name: user[1] }, JWT_SECRET, {
