@@ -11,7 +11,8 @@ const PORT = process.env.PORT || 4000;
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var postsRouter = require('./routes/posts');
-
+var transactionsRouter = require('./routes/transaction');
+var techCommissionRouter = require('./routes/techCommission');
 var app = express();
 
 // view engine setup
@@ -27,12 +28,19 @@ app.use(session({
   secret: 'your-secret-key', // Replace with a secure key
   resave: false,
   saveUninitialized: true,
+  cookie: {
+    maxAge: 60 * 60 * 1000, // 1 hour (duration in milliseconds)
+    httpOnly: true,         // Prevent client-side script access to cookies
+    secure: false           // Set to true if using HTTPS
+}
 }));
 app.use(flash());
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/posts', postsRouter);
+app.use('/transactions', transactionsRouter);
+app.use('/admin', techCommissionRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

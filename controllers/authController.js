@@ -20,9 +20,9 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // Register a new user
 async function register(req, res) {
 //   const { username, password } = req.body; // Ensure email is included in the request
-    const username = "Hamza"
-    const password = "abcde"
-    const email = "davidalbert.eth@gmail.com"
+    const username = "Abdullah"
+    const password = "abc"
+    const email = "hamzaahmedmemon01@gmail.com"
     const type = "normal"
     console.log(process.env.GMAIL)
     console.log(process.env.PASSWORD)
@@ -178,7 +178,7 @@ const email = req.session.email
 async function login(req, res) {
     //   const { username, password } = req.body;
     const email = "davidalbert.eth@gmail.com";
-      const password = "abcde";
+      const password = "abcde";        //abc
     
     
       if (!email || !password) {

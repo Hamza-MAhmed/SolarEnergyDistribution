@@ -6,16 +6,20 @@ async function createTransaction(req, res) {
     // const { postId, unitsToBuy, buyerId } = req.body;
     //from select button that ost data should be posted to backend
 
-    const postId = 1;
-    const seller = 1;
+    const postId = 12;
+    const seller = 2;
     
     let connection;
 
     try {
+        console.log("dui")
         connection = await getConnection();
+        console.log("dui2")
 
-        const postQuery = `SELECT * FROM POSTS WHERE post_id = :postId`;
-        const postResult = await connection.execute(postQuery, { postId });
+        const postQuery = `SELECT * FROM POSTS WHERE post_id = :post_id`;
+        const postResult = await connection.execute(postQuery, { post_id:postId });
+        console.log("dui3")
+
 
         if (postResult.rows.length === 0) {
             return res.status(404).json({ message: 'Post not found.' });
@@ -23,26 +27,29 @@ async function createTransaction(req, res) {
 
         const post = postResult.rows[0];
         const availableUnits = post[3]; // Adjust index for available units column
-
-        // Check if the units to buy are available
-        if (unitsToBuy > availableUnits) {
-            return res.status(400).json({ message: 'Not enough units available.' });
-        }
+        console.log(post)
 
         // Insert the transaction into the transaction table
         const transactionData = {
             buyer_id: getSessionUser(req),
             post_id: postId,
-            units_bought: 30,
+            units_bought: 300,
             total_price: 1000,
-            status: 'Pending',
+            status: 'Pending'
         };
+        console.log(transactionData);
+        if (transactionData.units_bought > availableUnits) {
+            return res.status(400).json({ message: 'Not enough units available.' });
+        }
+
 
         const query = `INSERT INTO Transactions (transaction_id, buyer_id, post_id, units_bought, 
-        total_price, status, transaction_date) VALUES (Transaction_id_seq.NEXTVAL, :buyer_id, :post_id, 
+        total_price, status, transaction_date) VALUES (Trans_id_seq.NEXTVAL, :buyer_id, :post_id, 
         :units_bought, :total_price, :status, CURRENT_TIMESTAMP)`;
+        console.log("dui4")
         
         await connection.execute(query, transactionData, { autoCommit: true });
+        console.log("dui5")
 
         // Update the post's available units
         // const updatedUnits = availableUnits - unitsToBuy;
@@ -74,7 +81,7 @@ async function getSellerTransactedPosts(req, res) {
 
     try {
         connection = await getConnection();
-        const result = await connection.execute(query, { sellerId });
+        const result = await connection.execute(query, { seller_id : sellerId });
 
         const posts = result.rows.map(row => ({
             user_name: row[0],
@@ -94,50 +101,26 @@ async function getSellerTransactedPosts(req, res) {
 }
 
 async function approveTransaction(req, res) {
-    const { transactionId } = req.body;
-    const unitsSold = 40;
+    // const { transactionId } = req.body;
+    const id = 1;
+    const unitsSold = 30;
     //fetch from frontend or by approve button
     let connection;
 
     try {
         connection = await getConnection();
+        const transQuery = `UPDATE Transactions SET status = 'Progress' WHERE transaction_id = :transaction_id`;
+        await connection.execute(transQuery, { transaction_id : id }, { autoCommit: true });
 
-        // const transactionQuery = `SELECT * FROM Transactions WHERE transaction_id = :transactionId`;
-        // const transactionResult = await connection.execute(transactionQuery, { transactionId });
-
-        // if (transactionResult.rows.length === 0) {
-        //     return res.status(404).json({ message: 'Transaction not found.' });
-        // }
-
-        // const transaction = transactionResult.rows[0];
-        // const postId = transaction[1]; // Post ID from transaction
-        // const unitsSold = transaction[4]; // Units bought by the buyer
-        // const sellerId = transaction[3]; // Seller ID from transaction
-
-        // Update transaction status to "Progress"
-        const transQuery = `UPDATE Transactions SET status = 'Progress' WHERE transaction_id = :transactionId`;
-        await connection.execute(updateQuery, { transactionId }, { autoCommit: true });
-
-        // const postquery = `SELECT * FROM POSTS WHERE post_id = :postId`;
-        // const postResult = await connection.execute(postQuery, { postId });
-
-        // const post = postResult.rows[0];
-        // const availableUnits = post[3]; // Available units in the post
-
-        // Ensure there are enough units left for the transaction
-        // if (availableUnits < unitsSold) {
-        //     return res.status(400).json({ message: 'Not enough units available to complete the transaction.' });
-        // }
-
-        const newUnits = availableUnits - unitsSold;
+        // const newUnits = availableUnits - unitsSold;
         const postQuery = `UPDATE POSTS SET units = units - :units WHERE post_id = (select post_id from transactions where transaction_id = :transaction_id)`;
-        await connection.execute(postQuery, { units: unitsSold, transactionId }, { autoCommit: true });
+        await connection.execute(postQuery, { units: unitsSold, transaction_Id : id }, { autoCommit: true });
         const deletePost = `DELETE FROM POSTS WHERE UNITS = 0`;
         await connection.execute(deletePost)
         // If units are 0, remove post from dashboard
-        if (newUnits === 0) {
-            // Hide post from dashboard if needed
-        }
+        // if (newUnits === 0) {
+        //     // Hide post from dashboard if needed
+        // }
 
         res.status(200).json({ message: 'Transaction approved successfully!' });
     } catch (err) {
@@ -149,54 +132,56 @@ async function approveTransaction(req, res) {
     }
 }
 
-app.post('/api/seller/approve', async (req, res) => {
-    const { transactionId } = req.body;
-    let connection;
+// app.post('/api/seller/approve', async (req, res) => {
+//     const { transactionId } = req.body;
+//     let connection;
 
-    try {
-        connection = await getConnection();
+//     try {
+//         connection = await getConnection();
 
-        // Fetch the transaction details
-        const transactionQuery = `SELECT * FROM Transactions WHERE transaction_id = :transactionId`;
-        const transactionResult = await connection.execute(transactionQuery, { transactionId });
+//         // Fetch the transaction details
+//         const transactionQuery = `SELECT * FROM Transactions WHERE transaction_id = :transactionId`;
+//         const transactionResult = await connection.execute(transactionQuery, { transactionId });
 
-        if (transactionResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Transaction not found.' });
-        }
+//         if (transactionResult.rows.length === 0) {
+//             return res.status(404).json({ message: 'Transaction not found.' });
+//         }
 
-        const transaction = transactionResult.rows[0];
-        const postId = transaction[1]; // Post ID from transaction
-        const unitsSold = transaction[4]; // Units bought by the buyer
-        const sellerId = transaction[3]; // Seller ID from transaction
+//         const transaction = transactionResult.rows[0];
+//         const postId = transaction[1]; // Post ID from transaction
+//         const unitsSold = transaction[4]; // Units bought by the buyer
+//         const sellerId = transaction[3]; // Seller ID from transaction
 
-        // Update transaction status to 'Progress'
-        const updateTransactionSql = `UPDATE Transactions SET status = 'Progress' WHERE transaction_id = :transactionId`;
-        await connection.execute(updateTransactionSql, { transactionId }, { autoCommit: true });
+//         // Update transaction status to 'Progress'
+//         const updateTransactionSql = `UPDATE Transactions SET status = 'Progress' WHERE transaction_id = :transactionId`;
+//         await connection.execute(updateTransactionSql, { transactionId }, { autoCommit: true });
 
-        // Update the post with the remaining units
-        const postQuery = `SELECT * FROM POSTS WHERE post_id = :postId`;
-        const postResult = await connection.execute(postQuery, { postId });
+//         // Update the post with the remaining units
+//         const postQuery = `SELECT * FROM POSTS WHERE post_id = :postId`;
+//         const postResult = await connection.execute(postQuery, { postId });
 
-        const post = postResult.rows[0];
-        const availableUnits = post[3]; // Available units in the post
+//         const post = postResult.rows[0];
+//         const availableUnits = post[3]; // Available units in the post
 
-        if (availableUnits < unitsSold) {
-            return res.status(400).json({ message: 'Not enough units available to complete the transaction.' });
-        }
+//         if (availableUnits < unitsSold) {
+//             return res.status(400).json({ message: 'Not enough units available to complete the transaction.' });
+//         }
 
-        const newUnits = availableUnits - unitsSold;
-        const updatePostSql = `UPDATE POSTS SET units = :units WHERE post_id = :postId`;
+//         const newUnits = availableUnits - unitsSold;
+//         const updatePostSql = `UPDATE POSTS SET units = :units WHERE post_id = :postId`;
 
-        await connection.execute(updatePostSql, { units: newUnits, postId }, { autoCommit: true });
+//         await connection.execute(updatePostSql, { units: newUnits, postId }, { autoCommit: true });
 
-        res.status(200).json({ message: 'Transaction approved and units updated successfully.' });
+//         res.status(200).json({ message: 'Transaction approved and units updated successfully.' });
 
-    } catch (err) {
-        res.status(500).json({ message: 'Error approving transaction', details: err.message });
-    } finally {
-        if (connection) {
-            await connection.close();
-        }
-    }
-});
+//     } catch (err) {
+//         res.status(500).json({ message: 'Error approving transaction', details: err.message });
+//     } finally {
+//         if (connection) {
+//             await connection.close();
+//         }
+//     }
+// });
+
+module.exports = { createTransaction, getSellerTransactedPosts, approveTransaction};
 
