@@ -20,7 +20,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // Register a new user
 async function register(req, res) {
 //   const { username, password } = req.body; // Ensure email is included in the request
-    const username = "Abdullah"
+    const username = "Adnan"
     const password = "abc"
     const email = "hamzaahmedmemon01@gmail.com"
     const type = "normal"

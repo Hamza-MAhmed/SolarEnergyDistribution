@@ -33,7 +33,7 @@ async function createTransaction(req, res) {
         const transactionData = {
             buyer_id: getSessionUser(req),
             post_id: postId,
-            units_bought: 300,
+            units_bought: 3,
             total_price: 1000,
             status: 'Pending'
         };
