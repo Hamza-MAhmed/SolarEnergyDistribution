@@ -15,7 +15,6 @@ async function createPost(req, res) {
                  VALUES (Post_id_seq.NEXTVAL, :seller_id, :location_id, :units, :price_per_unit)`;
     try{
         connection = await getConnection();
-    // const conn = await oracledb.getConnection();
     await connection.execute(sql, postData, { autoCommit: true });
     res.status(201).json({ message: 'Post created successfully' });
     }
@@ -24,7 +23,7 @@ async function createPost(req, res) {
     }
     finally {
         if (connection) {
-            await connection.close();  // Close the connection in the finally block
+            await connection.close(); 
         }
     }
 }

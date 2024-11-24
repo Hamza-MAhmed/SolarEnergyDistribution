@@ -19,11 +19,11 @@ let transporter = nodemailer.createTransport({
 const JWT_SECRET = process.env.JWT_SECRET;
 // Register a new user
 async function register(req, res) {
-//   const { username, password } = req.body; // Ensure email is included in the request
-    const username = "Adnan"
-    const password = "abc"
-    const email = "hamzaahmedmemon01@gmail.com"
-    const type = "normal"
+  const { username,email, password } = req.body; // Ensure email is included in the request
+    // const username = "Adnan"
+    // const password = "abc"
+    // const email = "hamzaahmedmemon01@gmail.com"
+    // const type = "normal"
     console.log(process.env.GMAIL)
     console.log(process.env.PASSWORD)
 
@@ -40,10 +40,11 @@ async function register(req, res) {
       `SELECT * FROM users WHERE email = :email`,
       { email }
     );
-    console.log("fs")
+    console.log(email,"fs")
 
     if (existingUser.rows.length > 0) {
       await connection.close();
+      console.log("ab")
       return res.status(400).json({ message: 'Account already exists.' });
     }
     
@@ -53,8 +54,8 @@ async function register(req, res) {
 
     // Insert the new user into the database
     await connection.execute(
-      `INSERT INTO users (user_id, user_name,email, password, user_type) VALUES (user_id_seq.NEXTVAL, :user_name, :email, :password, :user_type )`,
-      { user_name : username, email, password: hashedPassword, user_type : type }
+      `INSERT INTO users (user_id, user_name,email, password) VALUES (user_id_seq.NEXTVAL, :user_name, :email, :password)`,
+      { user_name : username, email, password: hashedPassword }
     );
     console.log("sf")
 
@@ -176,15 +177,12 @@ const email = req.session.email
 
 
 async function login(req, res) {
-    //   const { username, password } = req.body;
-    const email = "davidalbert.eth@gmail.com";
-      const password = "abcde";        //abc
-    
-    
-      if (!email || !password) {
-        return res.status(400).json({ message: 'Username and password are required.' });
-      }
-    
+      const { email, password } = req.body;
+    // const email = "davidalbert.eth@gmail.com";
+    //   const password = "abcde";        //abc
+      // if (!email || !password) {
+      //   return res.status(400).json({ message: 'Username and password are required.' });
+      // }
       try {
         const connection = await getConnection();
     

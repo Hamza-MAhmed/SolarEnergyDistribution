@@ -104,19 +104,26 @@ async function approveTransaction(req, res) {
     // const { transactionId } = req.body;
     const id = 1;
     const unitsSold = 30;
+    const p_id = 12;
     //fetch from frontend or by approve button
     let connection;
 
     try {
         connection = await getConnection();
         const transQuery = `UPDATE Transactions SET status = 'Progress' WHERE transaction_id = :transaction_id`;
-        await connection.execute(transQuery, { transaction_id : id }, { autoCommit: true });
+        await connection.execute(transQuery, { transaction_id : id });
 
         // const newUnits = availableUnits - unitsSold;
-        const postQuery = `UPDATE POSTS SET units = units - :units WHERE post_id = (select post_id from transactions where transaction_id = :transaction_id)`;
-        await connection.execute(postQuery, { units: unitsSold, transaction_Id : id }, { autoCommit: true });
+        const postQuery = `UPDATE POSTS SET units = units - :units WHERE post_id = 
+        (select post_id from transactions where transaction_id = :transaction_id)`;
+        await connection.execute(postQuery, { units: unitsSold, transaction_Id : id });
+        const deleteTrans = `delete TRANSACTIONS where POST_ID = :post_id AND UNITS_BOUGHT >
+         (select units from posts where post_id = :post_id);`
+        await connection.execute(deleteTrans, {post_id : p_id})
         const deletePost = `DELETE FROM POSTS WHERE UNITS = 0`;
         await connection.execute(deletePost)
+
+        await connection.commit();
         // If units are 0, remove post from dashboard
         // if (newUnits === 0) {
         //     // Hide post from dashboard if needed

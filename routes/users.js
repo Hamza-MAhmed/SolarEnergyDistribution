@@ -9,11 +9,11 @@ router.get('/', function(req, res, next) {
   res.send('respond with a resource');
 });
 // Register route
-router.get('/register', register);
+router.post('/register', register);
 
 
 // Login route
-router.get('/login', login);
+router.post('/login', login);
 
 router.get("/verify-otp", verify_otp)
 
