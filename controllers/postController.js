@@ -1,5 +1,6 @@
 // const oracledb = require('oracledb');
 const { getConnection } = require('../db/dbconfig');
+const { connect } = require('../routes');
 const {getSessionUser} = require('./authController')
 const session = require('express-session');
 
@@ -51,6 +52,69 @@ async function getPosts(req, res) {
         }
     }
 
+async function getMyPosts(req, res) {
+    const query = `SELECT * FROM POSTS WHERE SELLER_ID = :ID`
+    let connection
+    try{
+        const id = getSessionUser(req);
+        connection = await getConnection();
+        const result = await connection.execute(query, {id : id});
+        const posts = result.rows.map(row => ({
+            post_id: row[0],    
+            location_id: row[2],
+            units: row[3],
+            price_per_unit: row[4]
+        }))
+        res.status(200).json({posts});
+    }    
+    catch (err){
+        res.status(500).json({ error: 'Error fetching posts', details: err.message });
+    }
+    finally{
+        if (connection) {
+            await connection.close();
+        }
+    }
+}
+
+async function deletePost(req, res){
+    const query = `DELETE FROM POSTS WHERE POST_ID = :POST_ID`;
+    const delTrans = `DELETE FROM TRANSACTIONS WHERE POST_ID = :POST-ID`;
+    let connection;
+    console.log("Transaction committed1");
+
+    try{
+        console.log("Transaction committed2");
+
+        const p_id = 22;  //fetch from frontend
+        if (!p_id) {
+            return res.status(400).json({ error: "Post ID is required" });
+        }
+        console.log("Transaction committed3");
+
+        connection = await getConnection();
+        console.log("Transaction committed4");
+
+        await connection.execute(query, {POST_ID : p_id});
+        console.log("Transaction committed5");
+
+        await connection.commit();
+        await connection.execute(delTrans, {post_id : p_id});
+        res.status(200).json({message: "Post and transaction Deleted successfully"});
+    }
+    catch(err){
+        res.status(500).json({error: "Error in deleting", details: err.message})
+    }
+    finally{
+        if(connection){
+            try {
+                await connection.close();
+            } catch (closeErr) {
+                console.error("Error closing connection:", closeErr);
+            }
+        }
+    }
+}
 async function getPostById(postId) {
     const sql = `SELECT * FROM Posts WHERE post_id = :postId`;
     const conn = await oracledb.getConnection();
@@ -59,7 +123,7 @@ async function getPostById(postId) {
     return result.rows;
 }
 
-module.exports = { createPost, getPosts };
+module.exports = { createPost, getPosts, getMyPosts, deletePost};
 
 
 // const postModel = require('../models/postModel');
