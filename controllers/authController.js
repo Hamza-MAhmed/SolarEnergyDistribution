@@ -17,7 +17,7 @@ let transporter = nodemailer.createTransport({
     }
 });
 const JWT_SECRET = process.env.JWT_SECRET;
-// Register a new user
+// // Register a new user
 async function register(req, res) {
   const { username,email, password } = req.body; // Ensure email is included in the request
     // const username = "Adnan"
@@ -66,7 +66,7 @@ async function register(req, res) {
     // req.flash("email" , email);
     // req.flash("otp" , otp)
     req.session.email = email
-    req.session.otp = otp
+    // req.session.otp = otp
 
     // Set OTP expiry to 5 minutes from now
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
@@ -116,7 +116,7 @@ async function verify_otp(req, res) {
 //   const email = req.flash("email")[0]
 //   const otp = req.flash("otp")[0]
 const email = req.session.email
-  const otp = req.session.otp
+  const otp = req.body;
   console.log(email)
 
   let connection;
@@ -176,16 +176,15 @@ const email = req.session.email
 }
 
 
-async function login(req, res) {
-      // const { email, password } = req.body;
-    const email = "davidalbert.eth@gmail.com";
-      const password = "abcde";        //abc
+async function login(req, res, next) {
+      const { email, password } = req.body;
+    // const email = "davidalbert.eth@gmail.com";
+    //   const password = "abcde";        //abc/
       if (!email || !password) {
         return res.status(400).json({ message: 'Username and password are required.' });
       }
       try {
         const connection = await getConnection();
-    
         // Fetch user from the database
         const result = await connection.execute(
           `SELECT * FROM users WHERE email = :email`,
@@ -219,6 +218,9 @@ async function login(req, res) {
         user[4] == "Admin" ? res.json({ token, message: 'Login successful! Admin' }) :
          res.json({ token, message: 'Login successful! User' });
 
+         console.log(req.session.user);
+         const user1 = getSessionUser(req);
+
         // res.json({ token, message: 'Login successful!' });
       } catch (err) {
         res.status(500).json({ message: 'Error logging in user.', error: err.message });
@@ -236,13 +238,15 @@ async function login(req, res) {
 
     function isAuthenticated(req, res, next) {
       if (req.session && req.session.user) {
+        console.log(req.session.user);
           return next();
       } else {
           return res.status(401).json({ message: 'Unauthorized. Please log in.' });
       }
   }
   function getSessionUser(req) {
-    return req.session && req.session.user ? req.session.user.user_id : null;
+    console.log(req.session.user)
+    return req.session && req.session.user ? req.session.user : null;
 }  
 // Export functions
 module.exports = { register, verify_otp ,login, logout, isAuthenticated, getSessionUser};
@@ -447,3 +451,119 @@ module.exports = { register, verify_otp ,login, logout, isAuthenticated, getSess
 // }
 
 // module.exports = { register, login, verify_otp };
+
+
+
+
+
+
+// async function register(req, res) {
+//   const { username, email, password } = req.body;
+
+//   if (!username || !email || !password) {
+//     return res.status(400).json({ message: 'All fields are required.' });
+//   }
+
+//   let connection;
+//   try {
+//     connection = await getConnection();
+
+//     // Check if the user already exists
+//     const existingUser = await connection.execute(
+//       `SELECT * FROM users WHERE email = :email`,
+//       { email }
+//     );
+
+//     if (existingUser.rows.length > 0) {
+//       return res.status(400).json({ message: 'User already exists.' });
+//     }
+
+//     // Hash the password and store the user in the database
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     await connection.execute(
+//       `INSERT INTO users (user_id, user_name, email, password) VALUES (user_id_seq.NEXTVAL, :user_name, :email, :password)`,
+//       { user_name: username, email, password: hashedPassword }
+//     );
+//     // await connection.commit();
+//        // Generate OTP
+//     const otp = otpGenerator.generate(6, { upperCaseAlphabets: false, specialChars: false });
+//     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // OTP expiry in 5 minutes
+
+//     // Store OTP in the database
+//     await connection.execute(
+//       `UPDATE users SET otp = :otp, otp_expiry = :otp_expiry WHERE email = :email`,
+//       { otp, otp_expiry, email }
+//     );
+//     // await connection.commit();
+
+//     // Send OTP via email
+//     let mailOptions = {
+//       from: process.env.GMAIL,
+//       to: email,
+//       subject: 'Your OTP for Registration',
+//       text: `Your OTP is ${otp}. It is valid for 5 minutes.`,
+//     };
+
+//     transporter.sendMail(mailOptions, function (error, info) {
+//       if (error) {
+//         console.log('Error sending OTP:', error);
+//         return res.status(500).send('Error sending OTP');
+//       }
+//       res.status(200).json({ message: 'OTP sent successfully.' });
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Error registering user.', error: err.message });
+//   } finally {
+//     if (connection) {
+//       await connection.close();
+//     }
+//   }
+// }
+
+// async function verify_otp(req, res) {
+//   const { email, otp } = req.body;
+
+//   let connection;
+//   try {
+//     connection = await getConnection();
+
+//     const userResult = await connection.execute(
+//       `SELECT otp, otp_expiry FROM users WHERE email = :email`,
+//       { email }
+//     );
+
+//     if (userResult.rows.length === 0) {
+//       return res.status(400).json({ message: 'User not found.' });
+//     }
+
+//     const { otp: storedOtp, otp_expiry } = userResult.rows[0];
+
+//     // Check if OTP has expired
+//     if (new Date() > new Date(otp_expiry)) {
+//       return res.status(400).json({ message: 'OTP has expired.' });
+//     }
+
+//     // Check if the entered OTP matches the stored OTP
+//     if (otp !== storedOtp) {
+//       return res.status(400).json({ message: 'Incorrect OTP.' });
+//     }
+
+//     // Complete the registration process (e.g., marking the user as active)
+//     await connection.execute(
+//       `UPDATE users SET status = 'active' WHERE email = :email`,
+//       { email }
+//     );
+//     await connection.commit();
+
+//     res.status(200).json({ message: 'OTP verified successfully. Registration complete.' });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: 'Error verifying OTP.', error: err.message });
+//   } finally {
+//     if (connection) {
+//       await connection.close();
+//     }
+//   }
+// }
+

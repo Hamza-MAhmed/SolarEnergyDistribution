@@ -10,6 +10,6 @@ router.get('/home', getPosts);
 
 router.get('/myPost', isAuthenticated, getMyPosts)
 
-router.get('/deletePost', deletePost)
+router.post('/deletePost/:id', deletePost)
 
 module.exports = router

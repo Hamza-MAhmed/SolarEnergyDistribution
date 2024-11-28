@@ -1,10 +1,10 @@
 var createError = require('http-errors');
 var express = require('express');
+const session = require('express-session');
 const cors = require('cors');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-const session = require('express-session');
 const flash = require('connect-flash');
 require('dotenv').config();
 const PORT = process.env.PORT || 4000;
@@ -14,6 +14,7 @@ var usersRouter = require('./routes/users');
 var postsRouter = require('./routes/posts');
 var transactionsRouter = require('./routes/transaction');
 var techCommissionRouter = require('./routes/techCommission');
+var dashboardRouter = require('./routes/userDashboard');
 var app = express();
 
 // view engine setup
@@ -24,6 +25,7 @@ app.use(cors({
   origin: 'http://localhost:5173', // Replace with your frontend's URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+  credentials : true
 }));
 
 app.use(logger('dev'));
@@ -31,6 +33,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(session({
   secret: 'your-secret-key', // Replace with a secure key
   resave: false,
@@ -38,7 +41,7 @@ app.use(session({
   cookie: {
     maxAge: 60 * 60 * 1000, // 1 hour (duration in milliseconds)
     httpOnly: true,         // Prevent client-side script access to cookies
-    secure: false           // Set to true if using HTTPS
+    secure: false          // Set to true if using HTTPS
 }
 }));
 app.use(flash());
@@ -48,6 +51,7 @@ app.use('/users', usersRouter);
 app.use('/posts', postsRouter);
 app.use('/transactions', transactionsRouter);
 app.use('/admin', techCommissionRouter);
+app.use('/dashboard', dashboardRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
