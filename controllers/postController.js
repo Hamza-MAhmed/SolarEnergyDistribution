@@ -90,7 +90,7 @@ async function getMyPosts(req, res) {
             units: row[3],
             price_per_unit: row[4]
         }))
-        console.log(posts)
+        // console.log(posts)
         res.status(200).json({posts});
     }    
     catch (err){

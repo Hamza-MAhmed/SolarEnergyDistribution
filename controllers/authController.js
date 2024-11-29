@@ -238,14 +238,14 @@ async function login(req, res, next) {
 
     function isAuthenticated(req, res, next) {
       if (req.session && req.session.user) {
-        console.log(req.session.user);
+        // console.log(req.session.user);
           return next();
       } else {
           return res.status(401).json({ message: 'Unauthorized. Please log in.' });
       }
   }
   function getSessionUser(req) {
-    console.log(req.session.user)
+    // console.log(req.session.user)
     return req.session && req.session.user ? req.session.user : null;
 }  
 // Export functions
