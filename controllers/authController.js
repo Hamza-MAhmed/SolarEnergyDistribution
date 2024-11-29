@@ -178,8 +178,8 @@ const email = req.session.email
 
 async function login(req, res, next) {
       const { email, password } = req.body;
-    // const email = "davidalbert.eth@gmail.com";
-    //   const password = "abcde";        //abc/
+      // const email = "davidalbert.eth@gmail.com";
+      // const password = "abcde";      //abc/
       if (!email || !password) {
         return res.status(400).json({ message: 'Username and password are required.' });
       }

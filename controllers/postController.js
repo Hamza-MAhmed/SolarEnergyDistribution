@@ -4,28 +4,51 @@ const { connect } = require('../routes');
 const {getSessionUser} = require('./authController')
 const session = require('express-session');
 
+
 async function createPost(req, res) {
-    const user = getSessionUser(req)
-    const postData = {
-        seller_id: user.id,       // Hard-coded seller ID
-        location_id: 5,       // Hard-coded location ID
-        units: 50,            // Hard-coded units available
-        price_per_unit: 200   // Hard-coded price per unit
-    };
+    const user = getSessionUser(req); // Get the session user, ensure this works correctly
+    if (!user) {
+        return res.status(401).json({ error: 'Unauthorized: User not logged in' });
+    }
+
+    const { units, price_per_unit, location_id } = req.body;
+
+    // Validate input
+    if (!units || !price_per_unit || !location_id) {
+        return res.status(400).json({ error: 'Invalid input: All fields are required' });
+    }
+
     let connection;
-    const sql = `INSERT INTO Posts (post_id, seller_id, location_id, units, price_per_unit) 
-                 VALUES (Post_id_seq.NEXTVAL, :seller_id, :location_id, :units, :price_per_unit)`;
-    try{
-        connection = await getConnection();
-    await connection.execute(sql, postData, { autoCommit: true });
-    res.status(201).json({ message: 'Post created successfully' });
-    }
-    catch(err) {
-        res.status(500).json({ error: 'Error creating post',details:err.message });
-    }
-    finally {
+    const sql = `
+        INSERT INTO Posts (post_id, seller_id, location_id, units, price_per_unit)
+        VALUES (Post_id_seq.NEXTVAL, :seller_id, :location_id, :units, :price_per_unit)
+    `;
+    const postData = {
+        seller_id: user.id,
+        location_id: parseInt(location_id),
+        units: parseInt(units),
+        price_per_unit: parseInt(price_per_unit),
+    };
+    // const postData = {
+    //     seller_id: user.user_id,
+    //     location_id: 2,
+    //     units: 34,
+    //     price_per_unit: 903,
+    // };
+
+    try {
+        connection = await getConnection(); // Get the database connection
+        await connection.execute(sql, postData);
+        console.log("hskdj")
+        await connection.commit();
+        console.log("ewu")
+        res.status(201).json({ message: 'Post created successfully' });
+    } catch (err) {
+        console.error('Error executing SQL:', err.message);
+        res.status(500).json({ error: 'Error creating post', details: err.message });
+    } finally {
         if (connection) {
-            await connection.close(); 
+            await connection.close(); // Ensure connection is closed to prevent leaks
         }
     }
 }
@@ -84,7 +107,7 @@ async function getMyPosts(req, res) {
 async function deletePost(req, res){
     const postId = req.params.id;  // Get the post ID from the request parameter
     const query = `DELETE FROM POSTS WHERE POST_ID = :POST_ID`;
-    const delTrans = `DELETE FROM TRANSACTIONS WHERE POST_ID = :POST-ID`;
+    const delTrans = `DELETE FROM TRANSACTIONS WHERE POST_ID = :POST_ID`;
     let connection;
     console.log("Transaction committed1");
 
@@ -97,13 +120,22 @@ async function deletePost(req, res){
         connection = await getConnection();
         console.log("Transaction committed4");
         await connection.execute('BEGIN');
-        await connection.execute(query, {POST_ID : postId});
+        await connection.execute(delTrans, {POST_ID : postId});
         console.log("Transaction committed5");
-        await connection.execute(delTrans, {post_id : postId});
+        await connection.execute(query, {post_id : postId});
+        await connection.commit();
         res.status(200).json({message: "Post and transaction Deleted successfully"});
     }
     catch(err){
         console.error("Error deleting post:", err);
+        if (connection) {
+            try {
+                await connection.rollback(); // Undo all changes made since BEGIN
+                console.log("Transaction rolled back successfully");
+            } catch (rollbackErr) {
+                console.error("Error during rollback:", rollbackErr);
+            }
+        }
         res.status(500).json({error: "Error in deleting", details: err.message})
     }
     finally{
@@ -125,7 +157,33 @@ async function getPostById(postId) {
     return result.rows;
 }
 
-module.exports = { createPost, getPosts, getMyPosts, deletePost};
+async function getLocations(req, res) {
+    const query = `SELECT * FROM LOCATION`;
+    let connection
+    try{
+        connection = await getConnection();
+        const result = await connection.execute(query);
+        const locations = result.rows.map(row => ({
+            loc_id: row[0],
+            address: row[1]
+        }))
+        console.log(locations)
+        res.status(200).json({locations});
+
+    }
+    catch(err){
+        console.error('Error fetching loc:', err); // Log the complete error stack
+        res.status(500).json({ error: 'Error fetching loc', details: err.message });
+    }
+    finally{
+        if (connection) {
+            await connection.close();
+        }
+    }
+    
+}
+
+module.exports = { createPost, getPosts, getMyPosts, deletePost, getLocations};
 
 
 // const postModel = require('../models/postModel');

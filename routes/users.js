@@ -13,7 +13,7 @@ router.post('/register', register);
 
 
 // Login route
-router.post('/login', login);
+router.post ('/login', login);
 
 router.get("/verify-otp", verify_otp)
 
