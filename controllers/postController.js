@@ -24,7 +24,7 @@ async function createPost(req, res) {
         VALUES (Post_id_seq.NEXTVAL, :seller_id, :location_id, :units, :price_per_unit)
     `;
     const postData = {
-        seller_id: user.id,
+        seller_id: user.user_id,
         location_id: parseInt(location_id),
         units: parseInt(units),
         price_per_unit: parseInt(price_per_unit),
