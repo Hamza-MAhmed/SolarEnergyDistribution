@@ -89,22 +89,24 @@ async function createTransaction(req, res) {
 
 async function getSellerTransactedPosts(req, res) {
 
-    const sellerId = getSessionUser(req).user_id; // Assuming the seller's ID is stored in session
-    console.log(sellerId)
+    const user = getSessionUser(req); // Assuming the seller's ID is stored in session
+    // const sellerId = user.user_id
+    // console.log(sellerId)
 
-    const query = `select u.user_name, u.email, t.transaction_id, t.units_bought, t.post_id from users u join transactions t on u.user_id = t.buyer_id where t.post_id in (select post_id from posts where seller_id = :seller_id and t.status = 'Pending')`;
+    const query = `select u.user_name, u.email, t.transaction_id, t.units_bought, t.post_id, t.status from users u join transactions t on u.user_id = t.buyer_id where t.post_id in (select post_id from posts where seller_id = :seller_id and (t.status = 'Pending' or t.status = 'Progress'))`;
     let connection;
 
     try {
         connection = await getConnection();
-        const result = await connection.execute(query, { seller_id : sellerId });
+        const result = await connection.execute(query, { seller_id : user.user_id });
 
         const posts = result.rows.map(row => ({
             user_name: row[0],
             email: row[1],
             trans_id: row[2], 
             units: row[3],
-            post_id: row[4]
+            post_id: row[4],
+            status : row[5]
         }));
 
         res.status(200).json({ posts });
@@ -247,5 +249,39 @@ async function approveTransaction(req, res) {
 //     }
 // });
 
-module.exports = { createTransaction, getSellerTransactedPosts, approveTransaction};
+
+async function getRecurringPosts(req, res) {
+
+    const user = getSessionUser(req); // Assuming the seller's ID is stored in session
+    // const sellerId = user.user_id
+    console.log(user.user_id)
+
+    const query = `select u.user_name, u.email, t.transaction_id, t.units_bought, t.post_id from users u join transactions t on u.user_id = t.buyer_id where t.post_id in (select post_id from posts where seller_id = :seller_id and t.status = 'Recurring')`;
+    let connection;
+
+    try {
+        connection = await getConnection();
+        const result = await connection.execute(query, { seller_id : user.user_id });
+        console.log(result)
+
+        const posts = result.rows.map(row => ({
+            user_name: row[0],
+            email: row[1],
+            trans_id: row[2], 
+            units: row[3],
+            post_id: row[4]
+        }));
+
+        res.status(200).json({ posts });
+    } catch (err) {
+        res.status(500).json({ error: 'Error fetching seller posts', details: err.message });
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+}
+
+
+module.exports = { createTransaction, getSellerTransactedPosts, approveTransaction, getRecurringPosts};
 
