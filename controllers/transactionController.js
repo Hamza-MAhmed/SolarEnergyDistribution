@@ -255,14 +255,23 @@ async function getRecurringPosts(req, res) {
     const user = getSessionUser(req); // Assuming the seller's ID is stored in session
     // const sellerId = user.user_id
     console.log(user.user_id)
+    if (!user || !user.user_id) {
+        return res.status(400).json({ error: 'Invalid user ID' });
+    }    
 
-    const query = `select u.user_name, u.email, t.transaction_id, t.units_bought, t.post_id from users u join transactions t on u.user_id = t.buyer_id where t.post_id in (select post_id from posts where seller_id = :seller_id and t.status = 'Recurring')`;
+    const query = `select u.user_name, u.email, t.transaction_id, t.units_bought, t.post_id from users u join 
+    transactions t on u.user_id = t.buyer_id where t.post_id in (select post_id from posts where seller_id = :seller_id and t.status = 'Recurring')`;
+    const buyer_query = `select u.user_name, u.email, t.transaction_id, t.units_bought, t.post_id from users u join 
+    posts p on u.user_id = p.seller_id join transactions t on t.post_id = p.post_id where t.transaction_id in
+     (select transaction_id from transactions where buyer_id = :buyer_id and t.status = 'Recurring')`
     let connection;
 
     try {
         connection = await getConnection();
         const result = await connection.execute(query, { seller_id : user.user_id });
+        const result2 = await connection.execute(buyer_query, {buyer_id : user.user_id});
         console.log(result)
+        console.log(result2)
 
         const posts = result.rows.map(row => ({
             user_name: row[0],
@@ -272,7 +281,15 @@ async function getRecurringPosts(req, res) {
             post_id: row[4]
         }));
 
-        res.status(200).json({ posts });
+        const posts2 = result2.rows.map(row => ({
+            user_name: row[0],
+            email: row[1],
+            trans_id: row[2], 
+            units: row[3],
+            post_id: row[4]
+        }))
+
+        res.status(200).json({ posts ,posts2});
     } catch (err) {
         res.status(500).json({ error: 'Error fetching seller posts', details: err.message });
     } finally {

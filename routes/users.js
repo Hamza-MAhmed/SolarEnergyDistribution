@@ -15,7 +15,7 @@ router.post('/register', register);
 // Login route
 router.post ('/login', login);
 
-router.get("/verify-otp", verify_otp)
+router.post("/verify-otp", verify_otp)
 
 router.get("/logout", logout)
 

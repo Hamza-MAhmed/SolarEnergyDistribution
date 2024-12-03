@@ -115,8 +115,8 @@ async function register(req, res) {
 async function verify_otp(req, res) {
 //   const email = req.flash("email")[0]
 //   const otp = req.flash("otp")[0]
-const email = req.session.email
-  const otp = req.body;
+// const email = req.session.email
+  const {email , otp} = req.body;
   console.log(email)
 
   let connection;
