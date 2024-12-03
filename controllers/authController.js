@@ -211,6 +211,7 @@ async function login(req, res, next) {
           role: user[4],
           user_name: user[1]
       };   
+      console.log(req.session.user)
         // Generate JWT token
         const token = jwt.sign({ user_Id: user[0], user_name: user[1] }, JWT_SECRET, {
           expiresIn: '1h',

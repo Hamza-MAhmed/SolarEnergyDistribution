@@ -1,10 +1,15 @@
 const express = require('express');
 const router = express.Router();
 
-const {getTransactions, assignTechnician} = require('../controllers/techCommissionController');
+const {getProgressTransactions, assignTechnician, getTechniciansByLocation} = require('../controllers/techCommissionController');
 
-router.get('/getTransactions', getTransactions);
+router.get('/getProgressTransactions', getProgressTransactions);
 
 router.get('/getTransactions/assign', assignTechnician);
+
+router.get('/technicians/:locationId', getTechniciansByLocation);
+
+router.post('/assignTech', assignTechnician);
+
 
 module.exports = router;

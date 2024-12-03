@@ -1,65 +1,134 @@
 const { getConnection } = require('../db/dbconfig');
+const { route } = require('../routes');
 const {getSessionUser} = require('./authController')
 const session = require('express-session');
 
-async function getTransactions(req , res){
-    const query = `SELECT T.*, P.LOCATION_ID FROM TRANSACTIONS T JOIN POSTS P ON T.POST_ID = P.POST_ID
-    WHERE T.STATUS = 'Progress'`;
-    const locationQuery = "SELECT LOCATION FROM"
+// async function getTransactions(req , res){
+//     const query = `SELECT T.*, P.LOCATION_ID FROM TRANSACTIONS T JOIN POSTS P ON T.POST_ID = P.POST_ID
+//     WHERE T.STATUS = 'Progress'`;
+//     const locationQuery = "SELECT LOCATION FROM"
+//     let connection;
+//     try{
+//         connection = await getConnection();
+//         const result = await connection.execute(query);
+//         res.status(200).json(result.rows);
+//     }
+//     catch(err){
+//         res.status(500).json({err: "Error in fetching", detail: err.message});
+//     }
+//     finally{
+//         if(connection){
+//             await connection.close
+//         }
+//     }
+// }
+async function getProgressTransactions(req, res) {
+    res.setHeader('Cache-Control', 'no-store');  // Prevent caching
+res.setHeader('Pragma', 'no-cache');  // Older HTTP versions support this
+res.setHeader('Expires', '0');  // Set expiration to 0
+
+    console.log('erf')
+    const query = `
+        SELECT 
+            T.*, u.email, u1.email, P.LOCATION_ID, LOC.ADDRESS FROM 
+            TRANSACTIONS T 
+        JOIN 
+            POSTS P ON T.POST_ID = P.POST_ID
+        JOIN 
+            users u on p.seller_id = u.user_id
+        join
+            users u1 on t.buyer_id = u1.user_id
+        join
+            LOCATION LOC ON P.LOCATION_ID = LOC.LOCATION_ID
+        WHERE 
+            T.STATUS = 'Progress'
+    `;
     let connection;
-    try{
+    try {
+        console.log('ewr')
         connection = await getConnection();
+        console.log('ewr')
         const result = await connection.execute(query);
-        res.status(200).json(result.rows);
-    }
-    catch(err){
-        res.status(500).json({err: "Error in fetching", detail: err.message});
-    }
-    finally{
-        if(connection){
-            await connection.close
+        console.log('ewr')
+        const posts = result.rows.map(row => ({
+            transaction_id: row[0],
+            post_id: row[2],
+            units: row[3], 
+            total: row[4],
+            date: row[6],
+            s_mail: row[7],
+            b_mail: row[8],
+            loc_id: row[9],
+            address: row[10]
+        }));
+        console.log(posts);
+        res.status(200).json(posts);
+        
+    } catch (err) {
+        console.error('Error occurred:', err.message);
+        res.status(500).json({ err: "Error in fetching", detail: err.message });
+    } finally {
+        if (connection) {
+            await connection.close();
         }
     }
 }
 
-async function assignTechnician(req, res) {
-    const id = 1;
-    const loc_id = 3;
-    const commission_received = 500;
-    const tId= 3
-    const query1 = `SELECT * FROM TECHNICIAN WHERE TECHNICIAN_ID IN (SELECT TECHNICIAN_ID FROM WORKS_ON
-    WHERE LOCATION_ID = :LOCATION_ID)`;   //for drop down of technicians
-    
-    const query = `INSERT INTO Commission (COMMISSION_ID, commission_received, monthly_payments_remaining,
-    transaction_id, technician_id) VALUES (COMM_ID_SEQ.NEXTVAL, :commission_Received, 
-    :monthly_Payments_Remaining, :transaction_Id, :technician_Id)`;
-    const updateQuery = `UPDATE TRANSACTIONS SET STATUS = 'RECURRING' WHERE TRANSACTION_ID = :TRANSACTION_ID`;
-
+async function getTechniciansByLocation(req, res) {
+    res.setHeader('Cache-Control', 'no-store');  // Prevent caching
+res.setHeader('Pragma', 'no-cache');  // Older HTTP versions support this
+res.setHeader('Expires', '0');  // Set expiration to 0
+    console.log("ab")
+    const { locationId } = req.params;
+    const query = `
+        SELECT TECHNICIAN_ID, TECHNICIAN_NAME 
+        FROM TECHNICIAN 
+        WHERE TECHNICIAN_ID IN (
+            SELECT TECHNICIAN_ID 
+            FROM WORKS_ON 
+            WHERE LOCATION_ID = :LOCATION_ID
+        )
+    `;
     let connection;
-    try{
+    try {
         connection = await getConnection();
-        await connection.execute(query,{
-            commission_received: commission_received,
-            monthly_payments_remaining: 1, 
-            transaction_id: id,
-            technician_id: tId});
-
-        await connection.execute(updateQuery, {transaction_id : id});
-        await connection.commit();
-
-        res.status(200).json({ message: 'Technician assigned and commission recorded.' });
-        } catch (err) {
-            res.status(500).json({ error: 'Error assigning technician', details: err.message });
-        }    
-        finally {
-            if (connection) {
-                try {
-                    await connection.close();
-                } catch (err) {
-                    console.error('Error closing connection:', err);
-                }
-            }
+        const result = await connection.execute(query, { LOCATION_ID: locationId });
+        res.status(200).json(result.rows.map(row => ({ id: row[0], name: row[1] })));
+    } catch (err) {
+        res.status(500).json({ error: "Error fetching technicians", details: err.message });
+    } finally {
+        if (connection) {
+            await connection.close();
         }
     }
-module.exports = { getTransactions, assignTechnician };
+}
+
+
+
+
+async function assignTechnician(req, res) {
+    const { transaction_id, technicianId } = req.body;
+    const query = `
+      INSERT INTO COMMISSION (COMMISSION_ID, COMMISSION_RECEIVED, MONTHLY_PAYMENTS_REMAINING, 
+      TRANSACTION_ID, TECHNICIAN_ID) VALUES (COMM_ID_SEQ.NEXTVAL, 500, 1, :TRANSACTION_ID, :TECHNICIAN_ID)
+    `;
+    const updateQuery = `UPDATE TRANSACTIONS SET STATUS = 'RECURRING' WHERE TRANSACTION_ID = :TRANSACTION_ID`;
+    let connection;
+    try {
+      connection = await getConnection();
+      await connection.execute(query, {
+        TRANSACTION_ID: transaction_id,
+        TECHNICIAN_ID: technicianId,
+      });
+      await connection.execute(updateQuery, {TRANSACTION_ID: transaction_id});
+      await connection.commit();
+      res.status(200).send('Technician assigned successfully');
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    } finally {
+      if (connection) await connection.close();
+    }
+  }
+    module.exports = { getProgressTransactions, assignTechnician, getTechniciansByLocation };
+
 
