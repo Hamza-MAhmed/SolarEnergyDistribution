@@ -65,7 +65,7 @@ async function register(req, res) {
 
     // Set OTP expiry to 5 minutes from now
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-    console.log("jsd")
+    console.log("jsd",otpExpiry)
     const user = {
       username: username,
       email: email,
@@ -112,17 +112,17 @@ async function verify_otp(req, res) {
 
   try {
     connection = await getConnection();
-   
-
+    console.log("otp try",Date.now(),"  ",user.otpExpiry)
     // Check OTP and expiry time
-    if (enteredOtp == user.otp && Date.now() <= user.otpExpiry) {
+    if (enteredOtp == user.otp && Date.now() <= new Date(user.otpExpiry).getTime()) {
       // Insert the new user into the database
+      console.log("otp verify")
     await connection.execute(
       `INSERT INTO users (user_id, user_name,email, password) VALUES (user_id_seq.NEXTVAL, :user_name, :email, :password)`,
       { user_name : user.username, email : user.email, password: user.password}
     );
       await connection.commit(); // Clear the OTP from the database
-
+      console.log("data insert")
       res.json({ message: 'OTP verified successfully! You can now log in as ${user[3]} .' });
     } else {
       res.status(400).json({ message: 'Invalid or expired OTP. Please try again.' });
