@@ -3,25 +3,6 @@ const { route } = require('../routes');
 const {getSessionUser} = require('./authController')
 const session = require('express-session');
 
-// async function getTransactions(req , res){
-//     const query = `SELECT T.*, P.LOCATION_ID FROM TRANSACTIONS T JOIN POSTS P ON T.POST_ID = P.POST_ID
-//     WHERE T.STATUS = 'Progress'`;
-//     const locationQuery = "SELECT LOCATION FROM"
-//     let connection;
-//     try{
-//         connection = await getConnection();
-//         const result = await connection.execute(query);
-//         res.status(200).json(result.rows);
-//     }
-//     catch(err){
-//         res.status(500).json({err: "Error in fetching", detail: err.message});
-//     }
-//     finally{
-//         if(connection){
-//             await connection.close
-//         }
-//     }
-// }
 async function getProgressTransactions(req, res) {
     res.setHeader('Cache-Control', 'no-store');  // Prevent caching
 res.setHeader('Pragma', 'no-cache');  // Older HTTP versions support this
@@ -59,7 +40,7 @@ res.setHeader('Expires', '0');  // Set expiration to 0
             s_mail: row[7],
             b_mail: row[8],
             loc_id: row[9],
-            address: row[10]
+            address: row[10],
         }));
         console.log(posts);
         res.status(200).json(posts);
@@ -93,7 +74,12 @@ res.setHeader('Expires', '0');  // Set expiration to 0
     try {
         connection = await getConnection();
         const result = await connection.execute(query, { LOCATION_ID: locationId });
-        res.status(200).json(result.rows.map(row => ({ id: row[0], name: row[1] })));
+        console.log(result.rows)
+        const technicians = result.rows.map(row => ({
+            tech_id: row[0],
+            tech_name: row[1]
+            }));
+        res.status(200).json(technicians);
     } catch (err) {
         res.status(500).json({ error: "Error fetching technicians", details: err.message });
     } finally {
@@ -105,6 +91,8 @@ res.setHeader('Expires', '0');  // Set expiration to 0
 
 async function assignTechnician(req, res) {
     const { transaction_id, technicianId } = req.body;
+    console.log("Request Body")
+    console.log(req.body)
     const query = `
       INSERT INTO COMMISSION (COMMISSION_ID, COMMISSION_RECEIVED, MONTHLY_PAYMENTS_REMAINING, 
       TRANSACTION_ID, TECHNICIAN_ID) VALUES (COMM_ID_SEQ.NEXTVAL, 500, 1, :TRANSACTION_ID, :TECHNICIAN_ID)
@@ -119,6 +107,7 @@ async function assignTechnician(req, res) {
       });
       await connection.execute(updateQuery, {TRANSACTION_ID: transaction_id});
       await connection.commit();
+      console.log("pass")
       res.status(200).send('Technician assigned successfully');
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -144,7 +133,7 @@ async function assignTechnician(req, res) {
         join
             LOCATION LOC ON P.LOCATION_ID = LOC.LOCATION_ID
         WHERE 
-            T.STATUS = 'Recurring'
+            T.STATUS = 'Recurring' or T.STATUS = 'RECURRING'
     `;
     let connection;
     try {

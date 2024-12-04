@@ -6,9 +6,6 @@ async function createTransaction(req, res) {
     // const { postId, unitsToBuy, buyerId } = req.body;
     //from select button that ost data should be posted to backend
     const { post_id, units_bought, total_price, status } = req.body;
-
-    // const postId = 12;
-    // const seller = 2;
     let connection;
 
     try {
@@ -49,17 +46,7 @@ async function createTransaction(req, res) {
         
         await connection.execute(query, transactionData, { autoCommit: true });
         console.log("dui5")
-
-        // Update the post's available units
-        // const updatedUnits = availableUnits - unitsToBuy;
-        // const updatePostSql = `UPDATE POSTS SET units = :units WHERE post_id = :postId`;
-        
-        // await connection.execute(updatePostSql, { units: updatedUnits, postId }, { autoCommit: true });
-
-        // If units are 0, the post should not be shown in the dashboard
-        // if (updatedUnits === 0) {
-        //     // You can either remove this post from the dashboard or hide it
-        // }
+        await connection.commit();
 
         res.status(200).json({ message: 'Transaction created successfully!' });
     } catch (err) {
@@ -70,28 +57,11 @@ async function createTransaction(req, res) {
         }
     }
 }
-     
-  
-//       // Update the available units in the post
-//       const updatePostQuery = `UPDATE POSTS SET units = units - :units_bought WHERE post_id = :post_id`;
-//       await connection.execute(updatePostQuery, { units_bought, post_id }, { autoCommit: true });
-  
-//       res.status(200).json({ message: 'Transaction created successfully!' });
-//     } catch (err) {
-//       res.status(500).json({ error: 'Error creating transaction', details: err.message });
-//     } finally {
-//       if (connection) {
-//         await connection.close();
-//       }
-//     }
-//   }
-  
 
 async function getSellerTransactedPosts(req, res) {
 
     const user = getSessionUser(req); // Assuming the seller's ID is stored in session
-    // const sellerId = user.user_id
-    // console.log(sellerId)
+   
 
     const query = `select u.user_name, u.email, t.transaction_id, t.units_bought, t.post_id, t.status from users u join transactions t on u.user_id = t.buyer_id where t.post_id in (select post_id from posts where seller_id = :seller_id and (t.status = 'Pending' or t.status = 'Progress'))`;
     let connection;
@@ -119,48 +89,6 @@ async function getSellerTransactedPosts(req, res) {
     }
 }
 
-// async function approveTransaction(req, res) {
-//     // const { transactionId } = req.body;
-//     const {id,units,p_id} = req.params;
-//     console.log(id,p_id,units)
-//     const unitsSold = 30;
-//     //fetch from frontend or by approve button
-//     let connection;
-
-//     try {
-//         connection = await getConnection();
-//         const transQuery = `UPDATE Transactions SET status = 'Progress' WHERE transaction_id = :transaction_id`;
-//         await connection.execute(transQuery, { transaction_id : id });
-
-//         // const newUnits = availableUnits - unitsSold;
-//         const postQuery = `UPDATE POSTS SET units = units - :units WHERE post_id = 
-//         (select post_id from transactions where transaction_id = :transaction_id)`;
-//         await connection.execute(postQuery, { units: units, transaction_Id : id });
-//         console.log("1")
-//         const deleteTrans = `delete TRANSACTIONS where POST_ID = :post_id AND UNITS_BOUGHT >
-//          (select units from posts where post_id = :post_id);`
-//         await connection.execute(deleteTrans, {post_id : p_id,post_id : p_id})
-//         console.log("2")
-//         const deletePost = `DELETE FROM POSTS WHERE UNITS = 0`;
-//         await connection.execute(deletePost)
-//         console.log("3")
-//         await connection.commit();
-//         // If units are 0, remove post from dashboard
-//         // if (newUnits === 0) {
-//         //     // Hide post from dashboard if needed
-//         // }
-
-//         res.status(200).json({ message: 'Transaction approved successfully!' });
-//     } catch (err) {
-//         res.status(500).json({ error: 'Error approving transaction', details: err.message });
-//     } finally {
-//         if (connection) {
-//             await connection.close();
-//         }
-//     }
-// }
-
-
 async function approveTransaction(req, res) {
     const { id, units, p_id } = req.params;
     let connection;
@@ -181,10 +109,11 @@ async function approveTransaction(req, res) {
         const deleteTrans = `DELETE FROM TRANSACTIONS WHERE POST_ID = :post_id 
                              AND UNITS_BOUGHT > (SELECT units FROM posts WHERE post_id = :post_id) AND STATUS = 'PENDING'`;
         await connection.execute(deleteTrans, { post_id: p_id });
-
+        
         console.log('Executing Delete Posts');
-        const deletePost = `DELETE FROM POSTS WHERE UNITS = 0`;
-        await connection.execute(deletePost);
+        // const deletePost = `DELETE FROM POSTS WHERE POST_ID=:post_id and UNITS = 0`;
+        // await connection.execute(deletePost, { post_id: p_id });
+        console.log('Executing Commit');
 
         await connection.commit();
         res.status(200).json({ message: 'Transaction approved successfully!' });
@@ -197,58 +126,6 @@ async function approveTransaction(req, res) {
         }
     }
 }
-
-// app.post('/api/seller/approve', async (req, res) => {
-//     const { transactionId } = req.body;
-//     let connection;
-
-//     try {
-//         connection = await getConnection();
-
-//         // Fetch the transaction details
-//         const transactionQuery = `SELECT * FROM Transactions WHERE transaction_id = :transactionId`;
-//         const transactionResult = await connection.execute(transactionQuery, { transactionId });
-
-//         if (transactionResult.rows.length === 0) {
-//             return res.status(404).json({ message: 'Transaction not found.' });
-//         }
-
-//         const transaction = transactionResult.rows[0];
-//         const postId = transaction[1]; // Post ID from transaction
-//         const unitsSold = transaction[4]; // Units bought by the buyer
-//         const sellerId = transaction[3]; // Seller ID from transaction
-
-//         // Update transaction status to 'Progress'
-//         const updateTransactionSql = `UPDATE Transactions SET status = 'Progress' WHERE transaction_id = :transactionId`;
-//         await connection.execute(updateTransactionSql, { transactionId }, { autoCommit: true });
-
-//         // Update the post with the remaining units
-//         const postQuery = `SELECT * FROM POSTS WHERE post_id = :postId`;
-//         const postResult = await connection.execute(postQuery, { postId });
-
-//         const post = postResult.rows[0];
-//         const availableUnits = post[3]; // Available units in the post
-
-//         if (availableUnits < unitsSold) {
-//             return res.status(400).json({ message: 'Not enough units available to complete the transaction.' });
-//         }
-
-//         const newUnits = availableUnits - unitsSold;
-//         const updatePostSql = `UPDATE POSTS SET units = :units WHERE post_id = :postId`;
-
-//         await connection.execute(updatePostSql, { units: newUnits, postId }, { autoCommit: true });
-
-//         res.status(200).json({ message: 'Transaction approved and units updated successfully.' });
-
-//     } catch (err) {
-//         res.status(500).json({ message: 'Error approving transaction', details: err.message });
-//     } finally {
-//         if (connection) {
-//             await connection.close();
-//         }
-//     }
-// });
-
 
 async function getRecurringPosts(req, res) {
 
@@ -263,7 +140,7 @@ async function getRecurringPosts(req, res) {
     transactions t on u.user_id = t.buyer_id where t.post_id in (select post_id from posts where seller_id = :seller_id and t.status = 'Recurring')`;
     const buyer_query = `select u.user_name, u.email, t.transaction_id, t.units_bought, t.post_id from users u join 
     posts p on u.user_id = p.seller_id join transactions t on t.post_id = p.post_id where t.transaction_id in
-     (select transaction_id from transactions where buyer_id = :buyer_id and t.status = 'Recurring')`
+     (select transaction_id from transactions where buyer_id = :buyer_id and (t.status = 'Recurring' or t.status = 'RECURRING'))`;
     let connection;
 
     try {

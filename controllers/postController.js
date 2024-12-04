@@ -54,7 +54,7 @@ async function createPost(req, res) {
 }
 
 async function getPosts(req, res) {
-    const query = "SELECT * FROM POSTS";
+    const query = "SELECT * FROM POSTS where units != 0";
     let connection;
         try {
             connection = await getConnection();
