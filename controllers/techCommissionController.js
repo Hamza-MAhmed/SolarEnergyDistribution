@@ -97,10 +97,11 @@ async function assignTechnician(req, res) {
       INSERT INTO COMMISSION (COMMISSION_ID, COMMISSION_RECEIVED, MONTHLY_PAYMENTS_REMAINING, 
       TRANSACTION_ID, TECHNICIAN_ID) VALUES (COMM_ID_SEQ.NEXTVAL, 500, 1, :TRANSACTION_ID, :TECHNICIAN_ID)
     `;
-    const updateQuery = `UPDATE TRANSACTIONS SET STATUS = 'RECURRING' WHERE TRANSACTION_ID = :TRANSACTION_ID`;
+    const updateQuery = `UPDATE TRANSACTIONS SET STATUS = 'Recurring' WHERE TRANSACTION_ID = :TRANSACTION_ID`;
     let connection;
     try {
       connection = await getConnection();
+      await connection.execute('savepoint assign');
       await connection.execute(query, {
         TRANSACTION_ID: transaction_id,
         TECHNICIAN_ID: technicianId,
@@ -110,6 +111,10 @@ async function assignTechnician(req, res) {
       console.log("pass")
       res.status(200).send('Technician assigned successfully');
     } catch (err) {
+        if (connection) {
+            console.log('Rolling back transaction');
+            await connection.execute('rollback to savepoint assign'); // Rollback in case of an error
+        }
       res.status(500).json({ error: err.message });
     } finally {
       if (connection) await connection.close();
@@ -133,7 +138,7 @@ async function assignTechnician(req, res) {
         join
             LOCATION LOC ON P.LOCATION_ID = LOC.LOCATION_ID
         WHERE 
-            T.STATUS = 'Recurring' or T.STATUS = 'RECURRING'
+            T.STATUS = 'Recurring'
     `;
     let connection;
     try {

@@ -1,11 +1,12 @@
 const express = require('express');
 
-const {dashboard} = require('../controllers/userController')
+const {dashboard, getUser} = require('../controllers/userController')
 const router = express.Router();
 const {isAuthenticated} = require("../controllers/authController");
 
 
-router.get('/', dashboard);
+router.get('/', isAuthenticated, dashboard);
 
+router.get('/getUser', getUser);
 
 module.exports = router;

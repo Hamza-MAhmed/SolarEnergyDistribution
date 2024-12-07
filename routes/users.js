@@ -1,6 +1,6 @@
 // routes/authRoutes.js
 const express = require('express');
-const { register, login, verify_otp, logout } = require('../controllers/authController');
+const { register, login, verify_otp, logout, getSessionUser } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -17,6 +17,8 @@ router.post ('/login', login);
 
 router.post("/verify-otp", verify_otp)
 
-router.get("/logout", logout)
+router.post("/logout", logout)
+
+router.get("/session", getSessionUser)
 
 module.exports = router;

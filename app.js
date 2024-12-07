@@ -37,12 +37,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   secret: 'your-secret-key', // Replace with a secure key
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: {
     maxAge: 60 * 60 * 1000, // 1 hour (duration in milliseconds)
     httpOnly: true,         // Prevent client-side script access to cookies
     secure: false          // Set to true if using HTTPS
-}
+},
 }));
 app.use(flash());
 

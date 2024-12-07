@@ -95,6 +95,7 @@ async function approveTransaction(req, res) {
 
     try {
         connection = await getConnection();
+        await connection.execute('savepoint approve');
 
         console.log('Executing Transactions Update');
         const transQuery = `UPDATE Transactions SET status = 'Progress' WHERE transaction_id = :transaction_id`;
@@ -107,22 +108,25 @@ async function approveTransaction(req, res) {
 
         console.log('Executing Delete Transactions');
         const deleteTrans = `DELETE FROM TRANSACTIONS WHERE POST_ID = :post_id 
-                             AND UNITS_BOUGHT > (SELECT units FROM posts WHERE post_id = :post_id) AND STATUS = 'PENDING'`;
+                             AND UNITS_BOUGHT > (SELECT units FROM posts WHERE post_id = :post_id) AND STATUS = 'Pending'`;
         await connection.execute(deleteTrans, { post_id: p_id });
-        
-        console.log('Executing Delete Posts');
-        // const deletePost = `DELETE FROM POSTS WHERE POST_ID=:post_id and UNITS = 0`;
-        // await connection.execute(deletePost, { post_id: p_id });
-        console.log('Executing Commit');
 
-        await connection.commit();
+        console.log('Executing Commit');
+        await connection.commit(); // Commit transaction
+
         res.status(200).json({ message: 'Transaction approved successfully!' });
     } catch (err) {
         console.error('Error approving transaction:', err.message);
+        
+        if (connection) {
+            console.log('Rolling back transaction');
+            await connection.execute('rollback to savepoint approve'); // Rollback in case of an error
+        }
+
         res.status(500).json({ error: 'Error approving transaction', details: err.message });
     } finally {
         if (connection) {
-            await connection.close();
+            await connection.close(); // Close the connection
         }
     }
 }
@@ -140,7 +144,7 @@ async function getRecurringPosts(req, res) {
     transactions t on u.user_id = t.buyer_id where t.post_id in (select post_id from posts where seller_id = :seller_id and t.status = 'Recurring')`;
     const buyer_query = `select u.user_name, u.email, t.transaction_id, t.units_bought, t.post_id from users u join 
     posts p on u.user_id = p.seller_id join transactions t on t.post_id = p.post_id where t.transaction_id in
-     (select transaction_id from transactions where buyer_id = :buyer_id and (t.status = 'Recurring' or t.status = 'RECURRING'))`;
+     (select transaction_id from transactions where buyer_id = :buyer_id and (t.status = 'Recurring'))`;
     let connection;
 
     try {

@@ -119,7 +119,7 @@ async function deletePost(req, res){
         // const p_id = 22;  //fetch from frontend
         connection = await getConnection();
         console.log("Transaction committed4");
-        await connection.execute('BEGIN');
+        await connection.execute('SAVEPOINT start_point_delete');
         await connection.execute(delTrans, {POST_ID : postId});
         console.log("Transaction committed5");
         await connection.execute(query, {post_id : postId});
@@ -130,7 +130,8 @@ async function deletePost(req, res){
         console.error("Error deleting post:", err);
         if (connection) {
             try {
-                await connection.rollback(); // Undo all changes made since BEGIN
+                await connection.execute('rollback to savepoint start_point_delete');
+                // await connection.rollback('start_point_delete');  // Rolls back to the savepoint
                 console.log("Transaction rolled back successfully");
             } catch (rollbackErr) {
                 console.error("Error during rollback:", rollbackErr);
@@ -184,26 +185,3 @@ async function getLocations(req, res) {
 }
 
 module.exports = { createPost, getPosts, getMyPosts, deletePost, getLocations};
-
-
-// const postModel = require('../models/postModel');
-
-// async function createPost(req, res) {
-//     try {
-//         await postModel.createPost(req.body);
-//         res.status(201).json({ message: 'Post created successfully' });
-//     } catch (err) {
-//         res.status(500).json({ error: 'Error creating post' });
-//     }
-// }
-
-// async function getPostById(req, res) {
-//     try {
-//         const post = await postModel.getPostById(req.params.id);
-//         res.json(post);
-//     } catch (err) {
-//         res.status(500).json({ error: 'Error fetching post' });
-//     }
-// }
-
-// module.exports = { createPost, getPostById };
