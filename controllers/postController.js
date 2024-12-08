@@ -76,6 +76,27 @@ async function getPosts(req, res) {
         }
     }
 
+    async function getPostsByLoc(req, res) {
+        const { loc_id } = req.params;
+        let connection;
+        try {
+          connection = await getConnection();
+          const result = await connection.execute(
+            `SELECT * FROM posts WHERE location_id = :loc_id`,
+            [loc_id]
+          );
+          res.json({ posts: result.rows });
+        } catch (err) {
+          console.error('Error fetching posts by location:', err);
+          res.status(500).json({ error: 'Failed to fetch posts by location' });
+        } finally {
+          if (connection) {
+            await connection.close();
+          }
+        }
+    }
+      
+
 async function getMyPosts(req, res) {
     const query = `SELECT * FROM POSTS WHERE SELLER_ID = :ID`
     let connection
@@ -184,4 +205,4 @@ async function getLocations(req, res) {
     
 }
 
-module.exports = { createPost, getPosts, getMyPosts, deletePost, getLocations};
+module.exports = { createPost, getPosts, getMyPosts, deletePost, getLocations, getPostsByLoc};

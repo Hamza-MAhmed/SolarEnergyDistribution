@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const {createPost, getPosts, getMyPosts, deletePost, getLocations}= require("../controllers/postController")
+const {createPost, getPosts, getMyPosts, deletePost, getLocations, getPostsByLoc}= require("../controllers/postController")
 const {isAuthenticated} = require("../controllers/authController");
 
 router.post('/post' ,isAuthenticated, createPost)
@@ -13,5 +13,7 @@ router.get('/myPost', isAuthenticated, getMyPosts)
 router.delete('/deletePost/:id', deletePost)
 
 router.get('/location', getLocations)
+
+router.get('/location/:loc_id', getPostsByLoc)
 
 module.exports = router
